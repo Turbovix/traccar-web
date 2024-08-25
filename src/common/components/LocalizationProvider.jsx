@@ -141,12 +141,12 @@ const getDefaultLanguage = () => {
       }
     }
   }
-  return 'en';
+  return 'ptBR';
 };
 
 const LocalizationContext = createContext({
   languages,
-  language: 'en',
+  language: 'ptBR',
   setLanguage: () => {},
 });
 
