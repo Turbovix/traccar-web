@@ -7,7 +7,7 @@ export default {
   filterFormWidth: '160px',
   eventsDrawerWidth: '320px',
   bottomBarHeight: 56,
-  popupMapOffset: 300,
+  popupMapOffset: 0,
   popupMaxWidth: 288,
   popupImageHeight: 144,
   cardContentMaxHeight: '40vh',
