@@ -1,3 +1,5 @@
+// StatusCard.js com ícones adicionados
+
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
@@ -26,6 +28,13 @@ import PublishIcon from '@mui/icons-material/Publish';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PendingIcon from '@mui/icons-material/Pending';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import SpeedIcon from '@mui/icons-material/Speed';
+import MapIcon from '@mui/icons-material/Map';
+import PublicIcon from '@mui/icons-material/Public';
+import StreetviewIcon from '@mui/icons-material/Streetview';
+import DirectionsIcon from '@mui/icons-material/Directions';
 
 import { useTranslation } from './LocalizationProvider';
 import RemoveDialog from './RemoveDialog';
@@ -47,10 +56,17 @@ const useStyles = makeStyles()((theme, { desktopPadding }) => ({
     justifyContent: 'flex-end',
     alignItems: 'flex-start',
   },
-  mediaButton: {
-    color: theme.palette.primary.contrastText,
-    mixBlendMode: 'difference',
+mediaButton: {
+  color: '#fff',
+  backgroundColor: 'rgba(0, 0, 0, 0.4)', // fundo semitransparente
+  position: 'absolute',
+  top: 8,
+  right: 8,
+  zIndex: 10,
+  '&:hover': {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
+},
   header: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -85,28 +101,46 @@ const useStyles = makeStyles()((theme, { desktopPadding }) => ({
   },
   root: {
     pointerEvents: 'none',
-    position: 'fixed',
+    display: 'flex',
+    flexDirection: 'column',
     zIndex: 5,
     left: '50%',
     [theme.breakpoints.up('md')]: {
-      left: `calc(50% + ${desktopPadding} / 2)`,
-      bottom: theme.spacing(3),
+      position: 'fixed',
+      left: 550,
+      top: 0,
+      height: `calc(100% - ${theme.spacing(3)})`,
+      width: theme.dimensions.drawerWidthDesktop,
+      margin: theme.spacing(1.5),
+      zIndex: 3,
     },
     [theme.breakpoints.down('md')]: {
+      position: 'fixed',
       left: '50%',
+      top: 60,
       bottom: `calc(${theme.spacing(3)} + ${theme.dimensions.bottomBarHeight}px)`,
     },
     transform: 'translateX(-50%)',
   },
 }));
 
-const StatusRow = ({ name, content }) => {
+const attributeIcons = {
+  address: <LocationOnIcon fontSize="small" color="action" />,
+  fixTime: <AccessTimeIcon fontSize="small" color="action" />,
+  speed: <SpeedIcon fontSize="small" color="action" />,
+  totalDistance: <MapIcon fontSize="small" color="action" />,
+};
+
+const StatusRow = ({ name, content, icon }) => {
   const { classes } = useStyles({ desktopPadding: 0 });
 
   return (
     <TableRow>
       <TableCell className={classes.cell}>
-        <Typography variant="body2">{name}</Typography>
+        <Typography variant="body2" display="flex" alignItems="center" gap={1}>
+          {icon}
+          {name}
+        </Typography>
       </TableCell>
       <TableCell className={classes.cell}>
         <Typography variant="body2" color="textSecondary">{content}</Typography>
@@ -136,7 +170,6 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
   const navigationAppTitle = useAttributePreference('navigationAppTitle');
 
   const [anchorEl, setAnchorEl] = useState(null);
-
   const [removing, setRemoving] = useState(false);
 
   const handleRemove = useCatch(async (removed) => {
@@ -193,11 +226,7 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
                   className={`${classes.media} draggable-header`}
                   image={`/api/media/${device.uniqueId}/${deviceImage}`}
                 >
-                  <IconButton
-                    size="small"
-                    onClick={onClose}
-                    onTouchStart={onClose}
-                  >
+                  <IconButton size="small" onClick={onClose} onTouchStart={onClose}>
                     <CloseIcon fontSize="small" className={classes.mediaButton} />
                   </IconButton>
                 </CardMedia>
@@ -206,11 +235,7 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
                   <Typography variant="body2" color="textSecondary">
                     {device.name}
                   </Typography>
-                  <IconButton
-                    size="small"
-                    onClick={onClose}
-                    onTouchStart={onClose}
-                  >
+                  <IconButton size="small" onClick={onClose} onTouchStart={onClose}>
                     <CloseIcon fontSize="small" />
                   </IconButton>
                 </div>
@@ -219,26 +244,31 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
                 <CardContent className={classes.content}>
                   <Table size="small" classes={{ root: classes.table }}>
                     <TableBody>
-                      {positionItems.split(',').filter((key) => position.hasOwnProperty(key) || position.attributes.hasOwnProperty(key)).map((key) => (
-                        <StatusRow
-                          key={key}
-                          name={positionAttributes[key]?.name || key}
-                          content={(
-                            <PositionValue
-                              position={position}
-                              property={position.hasOwnProperty(key) ? key : null}
-                              attribute={position.hasOwnProperty(key) ? null : key}
-                            />
-                          )}
-                        />
-                      ))}
-
+                      {positionItems
+                        .split(',')
+                        .filter((key) => position.hasOwnProperty(key) || position.attributes.hasOwnProperty(key))
+                        .map((key) => (
+                          <StatusRow
+                            key={key}
+                            name={positionAttributes[key]?.name || key}
+                            content={
+                              <PositionValue
+                                position={position}
+                                property={position.hasOwnProperty(key) ? key : null}
+                                attribute={position.hasOwnProperty(key) ? null : key}
+                              />
+                            }
+                            icon={attributeIcons[key] || null}
+                          />
+                        ))}
                     </TableBody>
                     <TableFooter>
                       <TableRow>
                         <TableCell colSpan={2} className={classes.cell}>
                           <Typography variant="body2">
-                            <Link component={RouterLink} to={`/position/${position.id}`}>{t('sharedShowDetails')}</Link>
+                            <Link component={RouterLink} to={`/position/${position.id}`}>
+                              {t('sharedShowDetails')}
+                            </Link>
                           </Typography>
                         </TableCell>
                       </TableRow>
@@ -248,19 +278,12 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
               )}
               <CardActions classes={{ root: classes.actions }} disableSpacing>
                 <Tooltip title={t('sharedExtra')}>
-                  <IconButton
-                    color="secondary"
-                    onClick={(e) => setAnchorEl(e.currentTarget)}
-                    disabled={!position}
-                  >
+                  <IconButton color="secondary" onClick={(e) => setAnchorEl(e.currentTarget)} disabled={!position}>
                     <PendingIcon />
                   </IconButton>
                 </Tooltip>
                 <Tooltip title={t('reportReplay')}>
-                  <IconButton
-                    onClick={() => navigate('/replay')}
-                    disabled={disableActions || !position}
-                  >
+                  <IconButton onClick={() => navigate('/replay')} disabled={disableActions || !position}>
                     <ReplayIcon />
                   </IconButton>
                 </Tooltip>
@@ -281,11 +304,7 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
                   </IconButton>
                 </Tooltip>
                 <Tooltip title={t('sharedRemove')}>
-                  <IconButton
-                    color="error"
-                    onClick={() => setRemoving(true)}
-                    disabled={disableActions || deviceReadonly}
-                  >
+                  <IconButton color="error" onClick={() => setRemoving(true)} disabled={disableActions || deviceReadonly}>
                     <DeleteIcon />
                   </IconButton>
                 </Tooltip>
@@ -296,22 +315,36 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
       </div>
       {position && (
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
-          <MenuItem onClick={handleGeofence}>{t('sharedCreateGeofence')}</MenuItem>
-          <MenuItem component="a" target="_blank" href={`https://www.google.com/maps/search/?api=1&query=${position.latitude}%2C${position.longitude}`}>{t('linkGoogleMaps')}</MenuItem>
-          <MenuItem component="a" target="_blank" href={`http://maps.apple.com/?ll=${position.latitude},${position.longitude}`}>{t('linkAppleMaps')}</MenuItem>
-          <MenuItem component="a" target="_blank" href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${position.latitude}%2C${position.longitude}&heading=${position.course}`}>{t('linkStreetView')}</MenuItem>
-          {navigationAppTitle && <MenuItem component="a" target="_blank" href={navigationAppLink.replace('{latitude}', position.latitude).replace('{longitude}', position.longitude)}>{navigationAppTitle}</MenuItem>}
+          <MenuItem onClick={handleGeofence}>
+            <MapIcon fontSize="small" style={{ marginRight: 8 }} />
+            {t('sharedCreateGeofence')}
+          </MenuItem>
+          <MenuItem component="a" target="_blank" href={`https://www.google.com/maps/search/?api=1&query=${position.latitude}%2C${position.longitude}`}>
+            <PublicIcon fontSize="small" style={{ marginRight: 8 }} />
+            {t('linkGoogleMaps')}
+          </MenuItem>
+          <MenuItem component="a" target="_blank" href={`http://maps.apple.com/?ll=${position.latitude},${position.longitude}`}>
+            <PublicIcon fontSize="small" style={{ marginRight: 8 }} />
+            {t('linkAppleMaps')}
+          </MenuItem>
+          <MenuItem component="a" target="_blank" href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${position.latitude}%2C${position.longitude}&heading=${position.course}`}>
+            <StreetviewIcon fontSize="small" style={{ marginRight: 8 }} />
+            {t('linkStreetView')}
+          </MenuItem>
+          {navigationAppTitle && (
+            <MenuItem component="a" target="_blank" href={navigationAppLink.replace('{latitude}', position.latitude).replace('{longitude}', position.longitude)}>
+              <DirectionsIcon fontSize="small" style={{ marginRight: 8 }} />
+              {navigationAppTitle}
+            </MenuItem>
+          )}
           {!shareDisabled && !user.temporary && (
-            <MenuItem onClick={() => navigate(`/settings/device/${deviceId}/share`)}><Typography color="secondary">{t('deviceShare')}</Typography></MenuItem>
+            <MenuItem onClick={() => navigate(`/settings/device/${deviceId}/share`)}>
+              <Typography color="secondary">{t('deviceShare')}</Typography>
+            </MenuItem>
           )}
         </Menu>
       )}
-      <RemoveDialog
-        open={removing}
-        endpoint="devices"
-        itemId={deviceId}
-        onResult={(removed) => handleRemove(removed)}
-      />
+      <RemoveDialog open={removing} endpoint="devices" itemId={deviceId} onResult={(removed) => handleRemove(removed)} />
     </>
   );
 };
