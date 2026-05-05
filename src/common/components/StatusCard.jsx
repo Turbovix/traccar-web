@@ -26,7 +26,6 @@ import SendIcon from '@mui/icons-material/Send';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PendingIcon from '@mui/icons-material/Pending';
-
 import { useTranslation } from './LocalizationProvider';
 import RemoveDialog from './RemoveDialog';
 import PositionValue from './PositionValue';
@@ -41,6 +40,7 @@ const useStyles = makeStyles()((theme, { desktopPadding }) => ({
   card: {
     pointerEvents: 'auto',
     width: theme.dimensions.popupMaxWidth,
+    overflow: 'visible', // ← corrige recorte do botão X na borda do card
   },
   media: {
     height: theme.dimensions.popupImageHeight,
@@ -49,7 +49,7 @@ const useStyles = makeStyles()((theme, { desktopPadding }) => ({
     alignItems: 'flex-start',
   },
   mediaButton: {
-    color: theme.palette.primary.contrastText,
+    color: theme.palette.common.white,
     mixBlendMode: 'difference',
   },
   header: {
@@ -86,22 +86,28 @@ const useStyles = makeStyles()((theme, { desktopPadding }) => ({
   },
   root: {
     pointerEvents: 'none',
-    position: 'fixed',
+    display: 'flex',
+    flexDirection: 'column',
     zIndex: 5,
-    
-    // Configuração para Mobile (Telas pequenas)
-    [theme.breakpoints.down('md')]: {
-      left: theme.spacing(2),
-      bottom: `calc(${theme.spacing(3)} + ${theme.dimensions.bottomBarHeight}px)`,
-      maxWidth: `calc(100% - ${theme.spacing(4)})`, // Evita que a janela seja maior que a tela
-    },
-
-    // Configuração para Desktop (Telas médias e grandes)
+    left: '50%',
     [theme.breakpoints.up('md')]: {
-      // Se desktopPadding existir (largura do menu), soma com a margem. Se for 0, usa apenas a margem.
-      left: `calc(${desktopPadding} + ${theme.spacing(2)})`,
-      bottom: theme.spacing(3),
+      position: 'fixed',
+      left: 550,
+      top: 0,
+      height: `calc(100% - ${theme.spacing(3)})`,
+      width: theme.dimensions.drawerWidthDesktop,
+      margin: theme.spacing(1.5),
+      zIndex: 5,           // ← corrigido: era 3, conflitava com zIndex: 5 do nível base
+      overflow: 'visible', // ← corrige recorte do botão X quando popup está no topo
     },
+    [theme.breakpoints.down('md')]: {
+      position: 'fixed',
+      left: '50%',
+      top: 60,
+      bottom: `calc(${theme.spacing(3)} + ${theme.dimensions.bottomBarHeight}px)`,
+      overflow: 'visible', // ← idem para mobile
+    },
+    transform: 'translateX(-50%)',
   },
 }));
 
@@ -114,7 +120,9 @@ const StatusRow = ({ name, content }) => {
         <Typography variant="body2">{name}</Typography>
       </TableCell>
       <TableCell className={classes.cell}>
-        <Typography variant="body2" color="textSecondary">{content}</Typography>
+        <Typography variant="body2" color="textSecondary">
+          {content}
+        </Typography>
       </TableCell>
     </TableRow>
   );
@@ -128,21 +136,20 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
 
   const readonly = useRestriction('readonly');
   const deviceReadonly = useDeviceReadonly();
-
   const shareDisabled = useSelector((state) => state.session.server.attributes.disableShare);
   const user = useSelector((state) => state.session.user);
   const device = useSelector((state) => state.devices.items[deviceId]);
-
   const deviceImage = device?.attributes?.deviceImage;
 
   const positionAttributes = usePositionAttributes(t);
-  const positionItems = useAttributePreference('positionItems', 'fixTime,address,speed,totalDistance');
-
+  const positionItems = useAttributePreference(
+    'positionItems',
+    'fixTime,address,speed,totalDistance',
+  );
   const navigationAppLink = useAttributePreference('navigationAppLink');
   const navigationAppTitle = useAttributePreference('navigationAppTitle');
 
   const [anchorEl, setAnchorEl] = useState(null);
-
   const [removing, setRemoving] = useState(false);
 
   const handleRemove = useCatch(async (removed) => {
@@ -188,11 +195,7 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
                   className={`${classes.media} draggable-header`}
                   image={`/api/media/${device.uniqueId}/${deviceImage}`}
                 >
-                  <IconButton
-                    size="small"
-                    onClick={onClose}
-                    onTouchStart={onClose}
-                  >
+                  <IconButton size="small" onClick={onClose} onTouchStart={onClose}>
                     <CloseIcon fontSize="small" className={classes.mediaButton} />
                   </IconButton>
                 </CardMedia>
@@ -201,39 +204,42 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
                   <Typography variant="body2" color="textSecondary">
                     {device.name}
                   </Typography>
-                  <IconButton
-                    size="small"
-                    onClick={onClose}
-                    onTouchStart={onClose}
-                  >
+                  <IconButton size="small" onClick={onClose} onTouchStart={onClose}>
                     <CloseIcon fontSize="small" />
                   </IconButton>
                 </div>
               )}
               {position && (
                 <CardContent className={classes.content}>
-                  <Table size="small" classes={{ root: classes.table }}>
+                  <Table size="small" className={classes.table}>
                     <TableBody>
-                      {positionItems.split(',').filter((key) => position.hasOwnProperty(key) || position.attributes.hasOwnProperty(key)).map((key) => (
-                        <StatusRow
-                          key={key}
-                          name={positionAttributes[key]?.name || key}
-                          content={(
-                            <PositionValue
-                              position={position}
-                              property={position.hasOwnProperty(key) ? key : null}
-                              attribute={position.hasOwnProperty(key) ? null : key}
-                            />
-                          )}
-                        />
-                      ))}
-
+                      {positionItems
+                        .split(',')
+                        .filter(
+                          (key) =>
+                            position.hasOwnProperty(key) || position.attributes.hasOwnProperty(key),
+                        )
+                        .map((key) => (
+                          <StatusRow
+                            key={key}
+                            name={positionAttributes[key]?.name || key}
+                            content={
+                              <PositionValue
+                                position={position}
+                                property={position.hasOwnProperty(key) ? key : null}
+                                attribute={position.hasOwnProperty(key) ? null : key}
+                              />
+                            }
+                          />
+                        ))}
                     </TableBody>
                     <TableFooter>
                       <TableRow>
                         <TableCell colSpan={2} className={classes.cell}>
                           <Typography variant="body2">
-                            <Link component={RouterLink} to={`/position/${position.id}`}>{t('sharedShowDetails')}</Link>
+                            <Link component={RouterLink} to={`/position/${position.id}`}>
+                              {t('sharedShowDetails')}
+                            </Link>
                           </Typography>
                         </TableCell>
                       </TableRow>
@@ -241,7 +247,7 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
                   </Table>
                 </CardContent>
               )}
-              <CardActions classes={{ root: classes.actions }} disableSpacing>
+              <CardActions className={classes.actions} disableSpacing>
                 <Tooltip title={t('sharedExtra')}>
                   <IconButton
                     color="secondary"
@@ -291,13 +297,49 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
       </div>
       {position && (
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+          <MenuItem
+            onClick={() => navigate(`/stream?deviceId=${deviceId}`)}
+            disabled={position.protocol !== 'jt808'}
+          >
+            {t('linkLiveVideo')}
+          </MenuItem>
           {!readonly && <MenuItem onClick={handleGeofence}>{t('sharedCreateGeofence')}</MenuItem>}
-          <MenuItem component="a" target="_blank" href={`https://www.google.com/maps/search/?api=1&query=${position.latitude}%2C${position.longitude}`}>{t('linkGoogleMaps')}</MenuItem>
-          <MenuItem component="a" target="_blank" href={`http://maps.apple.com/?ll=${position.latitude},${position.longitude}`}>{t('linkAppleMaps')}</MenuItem>
-          <MenuItem component="a" target="_blank" href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${position.latitude}%2C${position.longitude}&heading=${position.course}`}>{t('linkStreetView')}</MenuItem>
-          {navigationAppTitle && <MenuItem component="a" target="_blank" href={navigationAppLink.replace('{latitude}', position.latitude).replace('{longitude}', position.longitude)}>{navigationAppTitle}</MenuItem>}
+          <MenuItem
+            component="a"
+            target="_blank"
+            href={`https://www.google.com/maps/search/?api=1&query=${position.latitude}%2C${position.longitude}`}
+          >
+            {t('linkGoogleMaps')}
+          </MenuItem>
+          <MenuItem
+            component="a"
+            target="_blank"
+            href={`http://maps.apple.com/?ll=${position.latitude},${position.longitude}`}
+          >
+            {t('linkAppleMaps')}
+          </MenuItem>
+          <MenuItem
+            component="a"
+            target="_blank"
+            href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${position.latitude}%2C${position.longitude}&heading=${position.course}`}
+          >
+            {t('linkStreetView')}
+          </MenuItem>
+          {navigationAppTitle && (
+            <MenuItem
+              component="a"
+              target="_blank"
+              href={navigationAppLink
+                .replace('{latitude}', position.latitude)
+                .replace('{longitude}', position.longitude)}
+            >
+              {navigationAppTitle}
+            </MenuItem>
+          )}
           {!shareDisabled && !user.temporary && (
-            <MenuItem onClick={() => navigate(`/settings/device/${deviceId}/share`)}><Typography color="secondary">{t('deviceShare')}</Typography></MenuItem>
+            <MenuItem onClick={() => navigate(`/settings/device/${deviceId}/share`)}>
+              <Typography color="secondary">{t('sharedShare')}</Typography>
+            </MenuItem>
           )}
         </Menu>
       )}
